@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr. Ouseph C.J. — Theoretical Physicist</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css" rel="stylesheet">
+
+<!-- Three.js + GSAP + Lenis (import map for ES modules) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+
+<style>
+:root{
+  --bg:#04060d; --bg-2:#070b16; --ink:#f5f2ea;
+  --ink-soft:#aab0c4; --ink-mute:#646b82;
+  --gold:#e7bd79; --gold-bright:#ffe2af; --gold-deep:#b07f3a;
+  --blue:#5a7bd8; --line:rgba(231,189,121,.14);
+  --ease:cubic-bezier(.16,1,.3,1);
+  --serif:'Fraunces',serif; --sans:'Space Grotesk',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.7;overflow-x:hidden;cursor:none}
+@media(hover:none){body{cursor:auto}}
+::selection{background:var(--gold);color:var(--bg)}
+::-webkit-scrollbar{width:0}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.02}
+a{color:inherit}
+img{display:block;max-width:100%}
+
+/* ---- Lenis ---- */
+html.lenis{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+.lenis.lenis-stopped{overflow:hidden}
+
+/* ============ WEBGL STAGE (fixed behind everything) ============ */
+#stage{position:fixed;inset:0;z-index:0;pointer-events:none}
+#stage canvas{display:block}
+
+/* cinematic overlays */
+#grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;mix-blend-mode:screen;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain .5s steps(3) infinite}
+@keyframes grain{0%,100%{transform:translate(0,0)}33%{transform:translate(-2%,1%)}66%{transform:translate(1%,-2%)}}
+#vignette{position:fixed;inset:0;z-index:59;pointer-events:none;box-shadow:inset 0 0 300px 80px rgba(0,0,0,.75)}
+#scanline{position:fixed;inset:0;z-index:58;pointer-events:none;opacity:.4;
+  background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.12) 3px 4px)}
+
+/* ============ CURSOR ============ */
+#cur{position:fixed;width:46px;height:46px;border:1px solid var(--gold);border-radius:50%;z-index:100;
+  pointer-events:none;transform:translate(-50%,-50%);transition:width .3s var(--ease),height .3s var(--ease),background .3s,border-color .3s;mix-blend-mode:difference}
+#cur.grow{width:90px;height:90px;background:rgba(231,189,121,.1)}
+#cur.view::after{content:'VIEW';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-size:.55rem;letter-spacing:.2em;color:var(--gold)}
+#curDot{position:fixed;width:5px;height:5px;background:var(--gold-bright);border-radius:50%;z-index:101;pointer-events:none;transform:translate(-50%,-50%)}
+@media(hover:none){#cur,#curDot{display:none}}
+
+/* ============ PRELOADER ============ */
+#pre{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2rem}
+#pre.done{pointer-events:none}
+.pre-counter{font-family:var(--serif);font-size:clamp(4rem,16vw,12rem);line-height:1;color:var(--ink);font-weight:300}
+.pre-label{font-size:.7rem;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-mute);overflow:hidden}
+.pre-label span{display:inline-block}
+#preWipe{position:fixed;inset:0;z-index:199;background:var(--gold);transform:scaleY(0);transform-origin:bottom}
+
+/* ============ PROGRESS + NAV ============ */
+#prog{position:fixed;top:0;left:0;height:2px;width:0;z-index:70;
+  background:linear-gradient(90deg,var(--gold-deep),var(--gold),var(--gold-bright));box-shadow:0 0 14px rgba(231,189,121,.7)}
+
+#nav{position:fixed;top:0;left:0;width:100%;z-index:65;display:flex;align-items:center;justify-content:space-between;
+  padding:1.6rem 4vw;mix-blend-mode:difference}
+.nav-brand{font-family:var(--serif);font-size:1.15rem;letter-spacing:-.01em;text-decoration:none;font-style:italic}
+.nav-menu{display:flex;gap:.4rem;list-style:none}
+.nav-menu a{font-family:var(--sans);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;
+  padding:.4rem .8rem;border-radius:100px;opacity:.7;transition:opacity .3s}
+.nav-menu a:hover,.nav-menu a.active{opacity:1}
+.nav-toggle{display:none;background:none;border:none;color:var(--ink);font-size:1.3rem;cursor:none}
+@media(max-width:900px){
+  .nav-menu{position:fixed;inset:0;background:rgba(4,6,13,.96);backdrop-filter:blur(20px);flex-direction:column;
+    align-items:center;justify-content:center;gap:1.5rem;transform:translateY(-100%);transition:transform .6s var(--ease);mix-blend-mode:normal}
+  .nav-menu.open{transform:none}
+  .nav-menu a{font-size:1.3rem}
+  .nav-toggle{display:block;z-index:66}
+}
+
+/* ============ LAYOUT ============ */
+.content{position:relative;z-index:10}
+.sec{position:relative;padding:14vh 4vw;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+@media(max-width:700px){.sec{padding:12vh 6vw}}
+.wrap{width:100%;max-width:1280px;margin:0 auto}
+
+.kicker{display:inline-flex;align-items:center;gap:.7rem;font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1.8rem}
+.kicker::before{content:'';width:36px;height:1px;background:var(--gold)}
+.h-mega{font-size:clamp(3rem,13vw,11rem);line-height:.88;letter-spacing:-.04em}
+.h-big{font-size:clamp(2.2rem,6vw,5rem);line-height:.98;letter-spacing:-.03em}
+.lead{font-size:clamp(1rem,1.3vw,1.2rem);color:var(--ink-soft);max-width:58ch;font-weight:300}
+.it{font-style:italic;font-weight:300;color:var(--gold-bright)}
+
+/* line-mask reveal */
+.mask{overflow:hidden;display:block}
+.mask>*{display:block;will-change:transform}
+
+/* ============ HERO ============ */
+#hero{height:100vh;justify-content:center;text-align:center;align-items:center}
+.hero-title{font-size:clamp(3.4rem,16vw,15rem);line-height:.82;letter-spacing:-.05em}
+.hero-sub{margin:2rem auto 0;max-width:46ch;font-size:clamp(1rem,1.6vw,1.35rem);color:var(--ink-soft);font-weight:300}
+.hero-tags{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:2.5rem}
+.hero-tags span{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  border:1px solid var(--line);padding:.4rem .9rem;border-radius:100px}
+.hero-cta{display:flex;gap:1rem;justify-content:center;margin-top:2.5rem;flex-wrap:wrap}
+.scroll-cue{position:absolute;bottom:3vh;left:50%;transform:translateX(-50%);font-size:.62rem;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--ink-mute);display:flex;flex-direction:column;align-items:center;gap:.8rem}
+.scroll-cue i{width:1px;height:46px;background:linear-gradient(var(--gold),transparent);animation:cue 2s var(--ease) infinite}
+@keyframes cue{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}50.1%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+.btn{display:inline-flex;align-items:center;gap:.6rem;padding:1rem 2.2rem;border-radius:100px;font-family:var(--sans);
+  font-size:.82rem;font-weight:500;letter-spacing:.04em;text-decoration:none;transition:all .45s var(--ease);position:relative;overflow:hidden}
+.btn-fill{background:var(--gold);color:var(--bg)}
+.btn-fill:hover{transform:translateY(-3px);box-shadow:0 18px 50px rgba(231,189,121,.35)}
+.btn-ghost{border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-3px)}
+
+/* ============ ABOUT ============ */
+.about-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:5rem;align-items:center}
+@media(max-width:900px){.about-grid{grid-template-columns:1fr;gap:3rem}}
+.portrait{position:relative;aspect-ratio:4/5;border-radius:6px;overflow:hidden;will-change:transform}
+.portrait img{width:100%;height:100%;object-fit:cover;filter:grayscale(45%) contrast(1.05);transition:filter .7s,transform 1.4s var(--ease)}
+.portrait:hover img{filter:grayscale(0);transform:scale(1.06)}
+.portrait::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(4,6,13,.65))}
+.about-quote{font-family:var(--serif);font-style:italic;font-size:clamp(1.6rem,2.8vw,2.6rem);line-height:1.3;margin:1.5rem 0}
+.stats{display:flex;gap:2.5rem;flex-wrap:wrap;margin-top:2.5rem}
+.stat .n{font-family:var(--serif);font-size:2.8rem;color:var(--gold);line-height:1}
+.stat .l{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);margin-top:.4rem}
+
+/* ============ HORIZONTAL PIN (journey) ============ */
+#journey{height:auto;padding:0;display:block}
+.pin-wrap{height:100vh;display:flex;align-items:center;overflow:hidden}
+.pin-track{display:flex;gap:4vw;padding:0 6vw;will-change:transform}
+.j-intro{flex:0 0 36vw;display:flex;flex-direction:column;justify-content:center}
+@media(max-width:900px){.j-intro{flex:0 0 80vw}}
+.j-card{flex:0 0 30vw;min-width:340px;background:rgba(10,14,26,.55);backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:16px;padding:2.5rem;display:flex;flex-direction:column;justify-content:center;
+  transition:border-color .4s,transform .4s var(--ease)}
+.j-card:hover{border-color:var(--gold-deep)}
+@media(max-width:900px){.j-card{flex:0 0 80vw}}
+.j-year{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+.j-card h3{font-size:1.7rem;margin-bottom:.4rem}
+.j-place{font-size:.88rem;color:var(--ink-soft);margin-bottom:1rem}
+.j-desc{font-size:.86rem;color:var(--ink-mute)}
+.j-link{color:var(--gold);text-decoration:none;font-size:.8rem;margin-top:1rem;display:inline-flex;gap:.4rem;transition:gap .3s}
+.j-link:hover{gap:.7rem}
+
+/* ============ WORK ============ */
+.work-item{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;margin-bottom:14vh}
+.work-item:last-child{margin-bottom:0}
+.work-item.rev{direction:rtl}.work-item.rev>*{direction:ltr}
+@media(max-width:900px){.work-item,.work-item.rev{grid-template-columns:1fr;direction:ltr;gap:2rem}}
+.work-vis{position:relative;aspect-ratio:16/11;border-radius:8px;overflow:hidden;will-change:transform}
+.work-vis img{width:100%;height:100%;object-fit:cover;filter:grayscale(35%);transition:filter .6s,transform 1.6s var(--ease);will-change:transform}
+.work-vis:hover img{filter:grayscale(0);transform:scale(1.08)}
+.work-vis::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(4,6,13,.25),rgba(231,189,121,.08))}
+.work-num{font-family:var(--serif);font-size:6rem;color:transparent;-webkit-text-stroke:1px var(--line);line-height:1}
+.work-cat{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:1rem 0}
+.work-title{font-size:clamp(1.9rem,3.4vw,3rem);margin-bottom:1.2rem}
+.work-desc{color:var(--ink-soft);margin-bottom:1.5rem}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.chip{font-size:.7rem;padding:.35rem .85rem;border:1px solid var(--line);border-radius:100px;color:var(--ink-soft);transition:.3s}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ============ RESEARCH ORBIT ============ */
+#research{text-align:center}
+.orbit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-top:5rem}
+.rcard{background:rgba(10,14,26,.5);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;
+  overflow:hidden;text-align:left;transition:transform .5s var(--ease),border-color .4s;will-change:transform}
+.rcard:hover{border-color:var(--gold-deep)}
+.rcard-img{aspect-ratio:16/10;overflow:hidden}
+.rcard-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(30%);transition:transform 1s var(--ease),filter .5s}
+.rcard:hover .rcard-img img{transform:scale(1.08);filter:grayscale(0)}
+.rcard-body{padding:1.8rem}
+.rcard .ico{font-size:1.4rem;color:var(--gold);margin-bottom:1rem}
+.rcard h3{font-size:1.4rem;margin-bottom:.7rem}
+.rcard p{font-size:.85rem;color:var(--ink-soft);margin-bottom:1rem}
+.rcard ul{list-style:none}
+.rcard li{font-size:.78rem;color:var(--ink-mute);padding-left:1rem;position:relative;margin-bottom:.4rem}
+.rcard li::before{content:'→';position:absolute;left:0;color:var(--gold)}
+.rcard a.pub{color:var(--gold);text-decoration:none}
+
+/* ============ TALKS ============ */
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:4rem}
+@media(max-width:760px){.gal{grid-template-columns:1fr 1fr}}
+.gal a{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden}
+.gal img{width:100%;height:100%;object-fit:cover;filter:grayscale(40%);transition:transform 1s var(--ease),filter .5s}
+.gal a:hover img{transform:scale(1.08);filter:grayscale(0)}
+.talk-list{margin-top:3rem;max-width:780px}
+.talk-row{display:grid;grid-template-columns:auto 1fr;gap:1.5rem;padding:1.3rem 0;border-top:1px solid var(--line);transition:padding-left .4s}
+.talk-row:hover{padding-left:1rem}
+.talk-row .d{color:var(--gold);font-size:.78rem;letter-spacing:.06em;white-space:nowrap}
+.talk-row .t{color:var(--ink-soft);font-size:.9rem}
+
+/* ============ DIGITAL ============ */
+.dig-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:4rem}
+@media(max-width:900px){.dig-grid{grid-template-columns:1fr}}
+.dig-card{background:rgba(10,14,26,.5);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;
+  overflow:hidden;display:flex;flex-direction:column;transition:transform .5s var(--ease),border-color .4s;will-change:transform}
+.dig-card:hover{border-color:var(--gold-deep)}
+.dig-img{aspect-ratio:16/9;overflow:hidden;position:relative}
+.dig-img img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.dig-card:hover .dig-img img{transform:scale(1.07)}
+.dig-ribbon{position:absolute;bottom:1rem;left:1rem;background:var(--gold);color:var(--bg);font-size:.66rem;
+  font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .85rem;border-radius:100px}
+.dig-body{padding:2rem;flex:1;display:flex;flex-direction:column;gap:1rem}
+.dig-body h3{font-size:1.7rem}
+.dig-body p{font-size:.88rem;color:var(--ink-soft)}
+.dig-body ul{list-style:none}
+.dig-body li{font-size:.8rem;color:var(--ink-mute);padding-left:1.1rem;position:relative;margin-bottom:.35rem}
+.dig-body li::before{content:'';position:absolute;left:0;top:.55em;width:5px;height:5px;border-radius:50%;background:var(--gold)}
+.dig-cta{margin-top:auto;align-self:flex-start;display:inline-flex;gap:.5rem;color:var(--gold);text-decoration:none;
+  font-size:.84rem;border:1px solid var(--line);padding:.7rem 1.4rem;border-radius:100px;transition:.4s var(--ease)}
+.dig-cta:hover{background:var(--gold);color:var(--bg)}
+
+/* ============ SKILLS ============ */
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-top:4rem}
+.skill{padding:2rem;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);transition:transform .5s var(--ease),border-color .4s,background .4s;will-change:transform}
+.skill:hover{transform:translateY(-6px);border-color:var(--gold-deep);background:rgba(231,189,121,.04)}
+.skill .ico{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(231,189,121,.1);color:var(--gold);font-size:1.3rem;margin-bottom:1.2rem}
+.skill h4{font-size:1.2rem;margin-bottom:.6rem}
+.skill p{font-size:.84rem;color:var(--ink-soft)}
+
+/* ============ CONTACT ============ */
+#contact{text-align:center;min-height:100vh}
+.contact-big{font-size:clamp(2.6rem,11vw,9rem);line-height:.9;letter-spacing:-.04em;margin-bottom:2rem}
+.contact-big a{color:var(--gold-bright);text-decoration:none;font-style:italic}
+.contact-meta{color:var(--ink-soft);margin-bottom:3rem}
+.fsoc{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:4rem}
+.fsoc a{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.5rem;border:1px solid var(--line);border-radius:100px;
+  text-decoration:none;font-size:.8rem;color:var(--ink-soft);transition:.4s var(--ease)}
+.fsoc a:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-3px)}
+.copy{font-size:.72rem;color:var(--ink-mute);border-top:1px solid var(--line);padding-top:2.5rem;max-width:1280px;margin:0 auto}
+</style>
+</head>
+
+<body>
+
+<!-- WebGL stage -->
+<div id="stage"></div>
+
+<!-- Overlays -->
+<div id="grain"></div>
+<div id="vignette"></div>
+<div id="scanline"></div>
+<div id="cur"></div>
+<div id="curDot"></div>
+<div id="prog"></div>
+<div id="preWipe"></div>
+
+<!-- Preloader -->
+<div id="pre">
+  <div class="pre-counter" id="preCount">0</div>
+  <div class="pre-label"><span>Entering the Universe</span></div>
+</div>
+
+<!-- Nav -->
+<nav id="nav">
+  <a href="#hero" class="nav-brand">Ouseph C.J.</a>
+  <ul class="nav-menu" id="navMenu">
+    <li><a href="#about">About</a></li>
+    <li><a href="#journey">Journey</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="#talks">Talks</a></li>
+    <li><a href="#digital">Digital</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <button class="nav-toggle" id="navToggle"><i class="fas fa-bars"></i></button>
+</nav>
+
+<main class="content">
+
+  <!-- ===== HERO ===== -->
+  <section id="hero" class="sec" data-scene="atom">
+    <div class="wrap">
+      <div class="kicker" data-fade>Theoretical Physics · Cosmology · Data Science</div>
+      <h1 class="hero-title">
+        <span class="mask"><span data-line>Dr. Ouseph</span></span>
+        <span class="mask"><span data-line class="it">C.&nbsp;J.</span></span>
+      </h1>
+      <p class="hero-sub" data-fade>Decoding the universe — from collider signatures to the first instant after the Big Bang.</p>
+      <div class="hero-tags" data-fade>
+        <span>Collider Physics</span><span>New Physics</span><span>Inflation</span>
+        <span>Primordial Black Holes</span><span>Gravitational Waves</span>
+      </div>
+      <div class="hero-cta" data-fade>
+        <a href="Ouseph_CV_Acad.pdf" target="_blank" class="btn btn-fill"><i class="fas fa-arrow-down"></i> Download CV</a>
+        <a href="https://inspirehep.net/authors/1842258?ui-citation-summary=true" target="_blank" class="btn btn-ghost"><i class="fas fa-book-open"></i> Publications</a>
+      </div>
+    </div>
+    <div class="scroll-cue">Scroll <i></i></div>
+  </section>
+
+  <!-- ===== ABOUT ===== -->
+  <section id="about" class="sec" data-scene="drift">
+    <div class="wrap about-grid">
+      <div class="portrait" data-tilt data-parallax="40">
+        <img src="Profile.JPEG" alt="Dr. Ouseph C.J.">
+      </div>
+      <div>
+        <div class="kicker" data-fade>Introduction</div>
+        <h2 class="h-big" data-fade>Physicist, data scientist<br><span class="it">&amp; quantitative researcher.</span></h2>
+        <p class="about-quote" data-fade>"I work where <span class="it">fundamental science</span> meets <span class="it">quantitative method.</span>"</p>
+        <p class="lead" data-fade>Over a decade across high-energy particle physics, early-universe cosmology, and advanced data analytics — building models, running large-scale simulations, and extracting meaning from complex, high-dimensional data.</p>
+        <div class="stats" data-fade>
+          <div class="stat"><div class="n" data-count="10">0</div><div class="l">Years Research</div></div>
+          <div class="stat"><div class="n" data-count="15">0</div><div class="l">Q1 Publications</div></div>
+          <div class="stat"><div class="n" data-count="9">0</div><div class="l">Countries</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== JOURNEY (horizontal pin) ===== -->
+  <section id="journey" data-scene="warp">
+    <div class="pin-wrap">
+      <div class="pin-track" id="pinTrack">
+        <div class="j-intro">
+          <div class="kicker">Path</div>
+          <h2 class="h-big">The<br><span class="it">Journey</span></h2>
+          <p class="lead" style="margin-top:1rem">A decade across four countries — scroll to travel through time.</p>
+        </div>
+
+        <div class="j-card">
+          <div class="j-year">2024 — 2025</div>
+          <h3>Senior Research Scientist</h3>
+          <div class="j-place">SeoulTech · Korea</div>
+          <p class="j-desc">Advanced mathematical modeling &amp; Python analytics for complex systems; &gt;10TB data processing, statistical inference, and international project leadership.</p>
+        </div>
+        <div class="j-card">
+          <div class="j-year">2025</div>
+          <h3>Visiting Research Scientist</h3>
+          <div class="j-place">University of Adelaide · Australia</div>
+          <p class="j-desc">Computational statistics and data modeling with Python &amp; Mathematica.</p>
+        </div>
+        <div class="j-card">
+          <div class="j-year">2019 — 2024</div>
+          <h3>Ph.D. in Physics</h3>
+          <div class="j-place">National Tsing Hua University · Taiwan</div>
+          <p class="j-desc">New Physics Search at the Forward Physics Facility of the LHC. 15+ Q1 papers. Advisor: Prof. Kingman Cheung.</p>
+          <a class="j-link" href="https://astr.site.nthu.edu.tw/p/406-1336-48634,r2568.php?Lang=en" target="_blank">Supervisor <i class="fas fa-arrow-right" style="font-size:.7rem"></i></a>
+        </div>
+        <div class="j-card">
+          <div class="j-year">2016 — 2018</div>
+          <h3>M.Sc. in Physics</h3>
+          <div class="j-place">IIT Indore · India</div>
+          <p class="j-desc">Thesis: Higgs Inflation. Advisor: Prof. Subhendu Rakshit.</p>
+        </div>
+        <div class="j-card">
+          <div class="j-year">2012 — 2015</div>
+          <h3>B.Sc. in Physics</h3>
+          <div class="j-place">University of Kerala · India</div>
+          <p class="j-desc">Thesis: General Relativity, Black Holes &amp; the Kruskal Diagram.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WORK ===== -->
+  <section id="work" class="sec" data-scene="collide">
+    <div class="wrap">
+      <div class="kicker" data-fade>Applied Work</div>
+      <h2 class="h-big" data-fade style="margin-bottom:8vh">Selected Projects</h2>
+
+      <div class="work-item">
+        <a href="Project1.png" data-lightbox="work" class="work-vis" data-tilt data-view data-parallax="60"><img src="Project1.png" alt="Data-Driven Modeling"></a>
+        <div>
+          <div class="work-num" data-fade>01</div>
+          <div class="work-cat" data-fade>Statistical Modeling</div>
+          <h3 class="work-title" data-fade>Data-Driven Modeling</h3>
+          <p class="work-desc" data-fade>Advanced statistical &amp; ML techniques extracting physical signals from large datasets — bridging theory and observation via Bayesian inference and MCMC.</p>
+          <div class="chips" data-fade>
+            <span class="chip">Python</span><span class="chip">Bayesian</span><span class="chip">MCMC</span><span class="chip">ROOT</span><span class="chip">Mathematica</span><span class="chip">SciPy</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="work-item rev">
+        <a href="Project2.png" data-lightbox="work" class="work-vis" data-tilt data-view data-parallax="60"><img src="Project2.png" alt="Quantitative System Simulations"></a>
+        <div>
+          <div class="work-num" data-fade>02</div>
+          <div class="work-cat" data-fade>Numerical Simulation</div>
+          <h3 class="work-title" data-fade>Quantitative System Simulations</h3>
+          <p class="work-desc" data-fade>High-fidelity simulations from LHC collisions to early-universe dynamics — precision predictions and discovery-reach forecasts for ALPs, dark photons, and PBH-induced gravitational waves.</p>
+          <div class="chips" data-fade>
+            <span class="chip">MadGraph</span><span class="chip">Pythia</span><span class="chip">FeynRules</span><span class="chip">Delphes</span><span class="chip">HPC</span><span class="chip">Parallel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== RESEARCH ===== -->
+  <section id="research" class="sec" data-scene="blackhole">
+    <div class="wrap">
+      <div class="kicker" data-fade style="justify-content:center">Science</div>
+      <h2 class="h-big" data-fade>Research Interests</h2>
+      <div class="orbit-grid">
+        <article class="rcard" data-tilt data-fade>
+          <div class="rcard-img"><img src="collider_physics.png" alt="Collider Physics"></div>
+          <div class="rcard-body"><div class="ico"><i class="fas fa-atom"></i></div><h3>Collider Physics</h3>
+            <p>New-physics searches at LHC, HL-LHC, Belle II, CEPC &amp; the Forward Physics Facility.</p>
+            <ul><li><a class="pub" href="https://arxiv.org/abs/2412.08212" target="_blank">ALPs &amp; sterile neutrinos (2024)</a></li>
+            <li><a class="pub" href="https://arxiv.org/abs/2404.14833" target="_blank">ALP operator interference (2024)</a></li></ul>
+          </div>
+        </article>
+        <article class="rcard" data-tilt data-fade>
+          <div class="rcard-img"><img src="new_physics.png" alt="New Physics"></div>
+          <div class="rcard-body"><div class="ico"><i class="fas fa-magnifying-glass"></i></div><h3>New Physics</h3>
+            <p>BSM phenomenology: ALPs, dark photons, leptoquarks, sterile neutrinos via EFT &amp; simulation.</p>
+            <ul><li>Gauge-boson couplings of ALPs</li><li>Dark photons at Belle II</li><li>Leptoquarks at the FPF</li></ul>
+          </div>
+        </article>
+        <article class="rcard" data-tilt data-fade>
+          <div class="rcard-img"><img src="inflation.png" alt="Inflation"></div>
+          <div class="rcard-body"><div class="ico"><i class="fas fa-globe"></i></div><h3>Inflation</h3>
+            <p>Higgs inflation with four-form couplings, linked to primordial GWs &amp; PTA data.</p>
+            <ul><li>NANOGrav, PTA &amp; PBH (2024)</li><li>Four-form Higgs inflation (2021)</li></ul>
+          </div>
+        </article>
+        <article class="rcard" data-tilt data-fade>
+          <div class="rcard-img"><img src="pbh.png" alt="Primordial Black Holes"></div>
+          <div class="rcard-body"><div class="ico"><i class="fas fa-circle-dot"></i></div><h3>Primordial Black Holes</h3>
+            <p>Formation from modified inflation, dark-matter candidacy &amp; multi-messenger signatures.</p>
+            <ul><li>Dark Photon Tridents via PBH (2025)</li><li>Double-peaked gamma-rays (2025)</li></ul>
+          </div>
+        </article>
+        <article class="rcard" data-tilt data-fade>
+          <div class="rcard-img"><img src="gw.png" alt="Gravitational Waves"></div>
+          <div class="rcard-body"><div class="ico"><i class="fas fa-wave-square"></i></div><h3>Gravitational Waves</h3>
+            <p>Probing new physics via pulsar timing arrays &amp; stochastic GW backgrounds from PBHs.</p>
+            <ul><li>PTA signals from modified inflation</li><li>Spectra from PBH formation</li></ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TALKS ===== -->
+  <section id="talks" class="sec" data-scene="ripple">
+    <div class="wrap">
+      <div class="kicker" data-fade>Presentations</div>
+      <h2 class="h-big" data-fade>Talks &amp; Teaching</h2>
+      <p class="lead" data-fade>International seminars and graduate mentorship yielding JHEP &amp; Physical Review D co-authored papers.</p>
+      <div class="gal">
+        <a href="talk1.jpg" data-lightbox="talks" data-fade data-view><img src="talk1.jpg" alt="Talk"></a>
+        <a href="talk2.JPEG" data-lightbox="talks" data-fade data-view><img src="talk2.JPEG" alt="Talk"></a>
+        <a href="NuInt.jpg" data-lightbox="talks" data-fade data-view><img src="NuInt.jpg" alt="Presentation"></a>
+      </div>
+      <div class="talk-list">
+        <div class="talk-row" data-fade><div class="d">Mar 2025</div><div class="t">Dark Photon Tridents Through PBH Signatures — University of Adelaide, Australia</div></div>
+        <div class="talk-row" data-fade><div class="d">Apr 2025</div><div class="t">Primordial Black Holes as Dark Photon Factories — National Tsing Hua University, Taiwan</div></div>
+        <div class="talk-row" data-fade><div class="d">Oct 2024</div><div class="t">New Physics Search at FPF, LHC &amp; Higgs Factories — KonKuk University, South Korea</div></div>
+        <div class="talk-row" data-fade><div class="d">+ 15 more</div><div class="t">International seminars and workshops (full list in CV)</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== DIGITAL ===== -->
+  <section id="digital" class="sec" data-scene="drift">
+    <div class="wrap">
+      <div class="kicker" data-fade>Side Projects</div>
+      <h2 class="h-big" data-fade>Digital Creations</h2>
+      <div class="dig-grid">
+        <article class="dig-card" data-tilt data-fade>
+          <div class="dig-img"><img src="app.png" alt="Roster Hub" style="object-position:center 20%"><span class="dig-ribbon">Workforce Management</span></div>
+          <div class="dig-body"><h3>Roster Hub</h3>
+            <p>A full-stack real-time PWA for healthcare shift scheduling with live chat &amp; gamified tools.</p>
+            <ul><li>Real-time Firestore sync &amp; group chat</li><li>Calendar + holiday API integration</li><li>Pomodoro, to-do &amp; reward system</li><li>Mobile-first, offline PWA</li></ul>
+            <a href="https://ouseph444.github.io/Shift-Manager/" target="_blank" class="dig-cta"><i class="fab fa-github"></i> View on GitHub</a>
+          </div>
+        </article>
+        <article class="dig-card" data-tilt data-fade>
+          <div class="dig-img"><img src="inf.png" alt="Inflation Explorer" style="object-position:center 30%"><span class="dig-ribbon">Cosmology Visualisation</span></div>
+          <div class="dig-body"><h3>Inflation Explorer</h3>
+            <p>Interactive dashboard for exploring Higgs inflation models in real time — research &amp; teaching.</p>
+            <ul><li>Real-time parameter sweeps</li><li>Klein-Gordon &amp; Friedmann solvers (SciPy)</li><li>n<sub>s</sub>–r plane with Planck/BICEP</li><li>Publication-quality export</li></ul>
+            <a href="https://ouseph444.github.io/Inflation-Explorer/" target="_blank" class="dig-cta"><i class="fab fa-github"></i> View on GitHub</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SKILLS ===== -->
+  <section id="skills" class="sec" data-scene="atom">
+    <div class="wrap">
+      <div class="kicker" data-fade>Expertise</div>
+      <h2 class="h-big" data-fade>Technical Skills</h2>
+      <div class="skill-grid">
+        <div class="skill" data-tilt data-fade><div class="ico"><i class="fab fa-python"></i></div><h4>Programming &amp; Tools</h4><p>Python (NumPy, SciPy, Pandas, scikit-learn, TensorFlow), Mathematica, LaTeX, SQL, R.</p></div>
+        <div class="skill" data-tilt data-fade><div class="ico"><i class="fas fa-atom"></i></div><h4>Physics &amp; Simulation</h4><p>MadGraph, Pythia, ROOT, Delphes, FeynRules, FeynCalc; HPC (Linux, parallel).</p></div>
+        <div class="skill" data-tilt data-fade><div class="ico"><i class="fas fa-chart-line"></i></div><h4>Statistical &amp; Numerical</h4><p>Bayesian inference, Monte Carlo, likelihood analysis, differential equations, optimization.</p></div>
+        <div class="skill" data-tilt data-fade><div class="ico"><i class="fas fa-chart-bar"></i></div><h4>Data &amp; Visualization</h4><p>Publication-quality plots, large-scale data (&gt;10TB), project management.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONTACT ===== -->
+  <section id="contact" class="sec" data-scene="blackhole">
+    <div class="wrap">
+      <div class="kicker" data-fade style="justify-content:center">Get in touch</div>
+      <h2 class="contact-big" data-fade>Let's <a href="mailto:ouseph444@gmail.com">talk</a> physics.</h2>
+      <p class="contact-meta" data-fade>Adelaide, South Australia · +61 413 469 729 · ouseph444@gmail.com</p>
+      <div class="fsoc" data-fade>
+        <a href="https://inspirehep.net/authors/1842258" target="_blank"><i class="fas fa-database"></i> INSPIRE-HEP</a>
+        <a href="https://scholar.google.com/citations?user=GgLr0BsAAAAJ" target="_blank"><i class="fab fa-google"></i> Scholar</a>
+        <a href="https://linkedin.com/in/c-j-ouseph-p-hd-3099251a9/" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a>
+        <a href="https://github.com/ouseph444" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+      </div>
+      <div class="copy">© 2026 Dr. Ouseph C.J. · Crafted as a cinematic experience</div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"></script>
+
+<!-- ================= THREE.JS UNIVERSE ================= -->
+<script type="module">
+import * as THREE from 'three';
+
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x04060d, 0.0006);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 4000);
+camera.position.set(0, 0, 520);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+
+/* ---- Particle system with multiple morph targets ---- */
+const COUNT = 9000;
+const rand = (a,b)=>a+Math.random()*(b-a);
+
+// Formation generators -> Float32Array of xyz
+function fAtom(){
+  const p=new Float32Array(COUNT*3);
+  for(let i=0;i<COUNT;i++){
+    const shell=Math.floor(rand(0,3));
+    const r=120+shell*70+rand(-8,8);
+    const t=rand(0,Math.PI*2), incl=(shell*Math.PI/3);
+    // electron orbital rings tilted differently
+    const x=r*Math.cos(t), y=r*Math.sin(t)*Math.cos(incl), z=r*Math.sin(t)*Math.sin(incl);
+    p[i*3]=x; p[i*3+1]=y; p[i*3+2]=z;
+  }
+  return p;
+}
+function fSphere(rad){
+  const p=new Float32Array(COUNT*3);
+  for(let i=0;i<COUNT;i++){
+    const u=Math.random(), v=Math.random();
+    const th=2*Math.PI*u, ph=Math.acos(2*v-1);
+    const r=rad*Math.cbrt(Math.random());
+    p[i*3]=r*Math.sin(ph)*Math.cos(th);
+    p[i*3+1]=r*Math.sin(ph)*Math.sin(th);
+    p[i*3+2]=r*Math.cos(ph);
+  }
+  return p;
+}
+function fBlackhole(){ // accretion disk
+  const p=new Float32Array(COUNT*3);
+  for(let i=0;i<COUNT;i++){
+    const r=rand(60,300), t=rand(0,Math.PI*2);
+    const warp=Math.pow(60/r,1.5)*40;
+    p[i*3]=r*Math.cos(t);
+    p[i*3+1]=rand(-10,10)+Math.sin(t*3)*warp*0.3;
+    p[i*3+2]=r*Math.sin(t);
+  }
+  return p;
+}
+function fRipple(){ // gravitational wave grid
+  const p=new Float32Array(COUNT*3);
+  const side=Math.sqrt(COUNT);
+  for(let i=0;i<COUNT;i++){
+    const gx=(i%side)/side-0.5, gz=Math.floor(i/side)/side-0.5;
+    const x=gx*620, z=gz*620;
+    const d=Math.hypot(x,z);
+    p[i*3]=x; p[i*3+1]=Math.sin(d*0.03)*60*Math.exp(-d*0.004); p[i*3+2]=z;
+  }
+  return p;
+}
+function fWarp(){ return fSphere(800); }      // dispersed tunnel
+function fDrift(){ return fSphere(420); }
+function fCollide(){ // two clusters
+  const p=new Float32Array(COUNT*3);
+  for(let i=0;i<COUNT;i++){
+    const side=i<COUNT/2?-1:1;
+    const r=rand(0,140);
+    const u=Math.random(),v=Math.random();
+    const th=2*Math.PI*u, ph=Math.acos(2*v-1);
+    p[i*3]=side*180 + r*Math.sin(ph)*Math.cos(th);
+    p[i*3+1]=r*Math.sin(ph)*Math.sin(th);
+    p[i*3+2]=r*Math.cos(ph);
+  }
+  return p;
+}
+
+const scenes = {
+  atom:fAtom(), drift:fDrift(), warp:fWarp(),
+  collide:fCollide(), blackhole:fBlackhole(), ripple:fRipple()
+};
+
+const geo = new THREE.BufferGeometry();
+const cur = fAtom();                 // live positions
+const from = fAtom().slice();        // morph source
+const to = fAtom().slice();          // morph target
+geo.setAttribute('position', new THREE.BufferAttribute(cur, 3));
+
+// colors gradient gold->blue
+const colors=new Float32Array(COUNT*3);
+const cGold=new THREE.Color(0xe7bd79), cBlue=new THREE.Color(0x5a7bd8), cWhite=new THREE.Color(0xfff4dd);
+for(let i=0;i<COUNT;i++){
+  const m=Math.random();
+  const c=m<0.6?cGold:(m<0.85?cWhite:cBlue);
+  colors[i*3]=c.r; colors[i*3+1]=c.g; colors[i*3+2]=c.b;
+}
+geo.setAttribute('color', new THREE.BufferAttribute(colors,3));
+
+const sprite=(()=>{ // soft round point texture
+  const cv=document.createElement('canvas');cv.width=cv.height=64;
+  const g=cv.getContext('2d');const grd=g.createRadialGradient(32,32,0,32,32,32);
+  grd.addColorStop(0,'rgba(255,255,255,1)');grd.addColorStop(.4,'rgba(255,255,255,.6)');grd.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=grd;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(cv);
+})();
+
+const mat=new THREE.PointsMaterial({
+  size:2.6, map:sprite, vertexColors:true, transparent:true, opacity:.9,
+  depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true
+});
+const points=new THREE.Points(geo, mat);
+scene.add(points);
+
+/* central glow core */
+const core=new THREE.Mesh(new THREE.SphereGeometry(16,32,32),
+  new THREE.MeshBasicMaterial({color:0xffe2af,transparent:true,opacity:.9}));
+scene.add(core);
+const halo=new THREE.Mesh(new THREE.SphereGeometry(40,32,32),
+  new THREE.MeshBasicMaterial({color:0xe7bd79,transparent:true,opacity:.12,blending:THREE.AdditiveBlending}));
+scene.add(halo);
+
+/* distant starfield */
+const starGeo=new THREE.BufferGeometry();
+const sPos=new Float32Array(2500*3);
+for(let i=0;i<2500;i++){sPos[i*3]=rand(-1800,1800);sPos[i*3+1]=rand(-1800,1800);sPos[i*3+2]=rand(-1800,400);}
+starGeo.setAttribute('position',new THREE.BufferAttribute(sPos,3));
+const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1.4,transparent:true,opacity:.5,depthWrite:false}));
+scene.add(stars);
+
+/* ---- morph control ---- */
+let morphT=1; // 1 = fully arrived
+function setTarget(name){
+  if(!scenes[name])return;
+  for(let i=0;i<COUNT*3;i++){ from[i]=cur[i]; to[i]=scenes[name][i]; }
+  morphT=0;
+}
+setTarget('atom');
+
+/* ---- pointer + scroll state ---- */
+const mouse={x:0,y:0,tx:0,ty:0};
+addEventListener('mousemove',e=>{mouse.tx=(e.clientX/innerWidth-.5);mouse.ty=(e.clientY/innerHeight-.5);});
+let scrollN=0; // 0..1 over whole page
+addEventListener('scroll',()=>{
+  const max=document.documentElement.scrollHeight-innerHeight;
+  scrollN=scrollY/max;
+},{passive:true});
+
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta(), t=clock.elapsedTime;
+
+  // ease morph
+  if(morphT<1){ morphT=Math.min(1, morphT+dt*0.9);
+    const e=morphT<.5?2*morphT*morphT:1-Math.pow(-2*morphT+2,2)/2; // easeInOut
+    for(let i=0;i<COUNT*3;i++){ cur[i]=from[i]+(to[i]-from[i])*e; }
+    geo.attributes.position.needsUpdate=true;
+  }
+
+  // gentle continuous rotation + breathing
+  points.rotation.y += dt*0.05;
+  points.rotation.x = Math.sin(t*0.1)*0.05;
+  halo.scale.setScalar(1+Math.sin(t*1.5)*0.06);
+  core.scale.setScalar(1+Math.sin(t*2.2)*0.12);
+  stars.rotation.y += dt*0.005;
+
+  // camera dolly through scene driven by scroll + parallax by mouse
+  mouse.x+=(mouse.tx-mouse.x)*0.05; mouse.y+=(mouse.ty-mouse.y)*0.05;
+  const targetZ = 560 - scrollN*260;
+  camera.position.x += ((mouse.x*120) - camera.position.x)*0.05;
+  camera.position.y += ((-mouse.y*120) - camera.position.y)*0.05;
+  camera.position.z += (targetZ - camera.position.z)*0.05;
+  camera.lookAt(0,0,0);
+
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// expose scene switch to GSAP layer
+window.__setScene = setTarget;
+</script>
+
+<!-- ================= INTERACTION + SCROLL CHOREOGRAPHY ================= -->
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ---- Preloader counter + wipe ---- */
+  const pc=document.getElementById('preCount');
+  let n={v:0};
+  gsap.to(n,{v:100,duration:2.2,ease:'power2.inOut',onUpdate:()=>pc.textContent=Math.round(n.v),
+    onComplete:()=>{
+      gsap.to('#preWipe',{scaleY:1,duration:.6,ease:'power3.inOut',transformOrigin:'bottom'});
+      gsap.to('#pre',{opacity:0,duration:.4,delay:.45,onComplete:()=>document.getElementById('pre').style.display='none'});
+      gsap.fromTo('#preWipe',{scaleY:1,transformOrigin:'bottom'},{scaleY:0,transformOrigin:'top',duration:.7,delay:.55,ease:'power3.inOut'});
+      startReveals();
+    }});
+
+  /* ---- Lenis smooth scroll ---- */
+  let lenis;
+  if(window.Lenis){
+    lenis=new Lenis({lerp:0.09,wheelMultiplier:1});
+    lenis.on('scroll',ScrollTrigger.update);
+    gsap.ticker.add(t=>lenis.raf(t*1000));
+    gsap.ticker.lagSmoothing(0);
+  }
+
+  /* ---- Cursor ---- */
+  const cur=document.getElementById('cur'),dot=document.getElementById('curDot');
+  let mx=innerWidth/2,my=innerHeight/2,cx=mx,cy=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';});
+  (function l(){cx+=(mx-cx)*.18;cy+=(my-cy)*.18;cur.style.left=cx+'px';cur.style.top=cy+'px';requestAnimationFrame(l);})();
+  document.querySelectorAll('a,button,[data-tilt]').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{cur.classList.add('grow');if(el.hasAttribute('data-view'))cur.classList.add('view');});
+    el.addEventListener('mouseleave',()=>{cur.classList.remove('grow','view');});
+  });
+
+  /* ---- Progress bar ---- */
+  ScrollTrigger.create({start:0,end:'max',onUpdate:s=>document.getElementById('prog').style.width=(s.progress*100)+'%'});
+
+  /* ---- Nav ---- */
+  const navMenu=document.getElementById('navMenu'),navToggle=document.getElementById('navToggle');
+  navToggle.addEventListener('click',()=>{navMenu.classList.toggle('open');
+    navToggle.querySelector('i').className=navMenu.classList.contains('open')?'fas fa-times':'fas fa-bars';});
+  navMenu.querySelectorAll('a').forEach(a=>a.addEventListener('click',e=>{
+    e.preventDefault();navMenu.classList.remove('open');navToggle.querySelector('i').className='fas fa-bars';
+    const t=document.querySelector(a.getAttribute('href'));
+    if(lenis)lenis.scrollTo(t,{offset:0}); else t.scrollIntoView({behavior:'smooth'});
+  }));
+  document.querySelector('.nav-brand').addEventListener('click',e=>{e.preventDefault();lenis?lenis.scrollTo(0):scrollTo(0,0);});
+
+  /* ---- Scene switching per section ---- */
+  document.querySelectorAll('[data-scene]').forEach(sec=>{
+    ScrollTrigger.create({trigger:sec,start:'top 55%',end:'bottom 55%',
+      onEnter:()=>window.__setScene && window.__setScene(sec.dataset.scene),
+      onEnterBack:()=>window.__setScene && window.__setScene(sec.dataset.scene),
+    });
+  });
+
+  /* ---- Hero line masks ---- */
+  function startReveals(){
+    gsap.to('[data-line]',{y:0,duration:1.1,stagger:.12,ease:'power4.out'});
+    gsap.fromTo('#hero [data-fade]',{y:30,opacity:0},{y:0,opacity:1,duration:1,stagger:.1,delay:.3,ease:'power3.out'});
+  }
+  gsap.set('[data-line]',{y:'110%'});
+
+  /* ---- Generic fade-up on scroll ---- */
+  gsap.utils.toArray('[data-fade]').forEach(el=>{
+    if(el.closest('#hero'))return;
+    gsap.fromTo(el,{y:46,opacity:0},{y:0,opacity:1,duration:1,ease:'power3.out',
+      scrollTrigger:{trigger:el,start:'top 88%',once:true}});
+  });
+
+  /* ---- Parallax on tagged elements ---- */
+  gsap.utils.toArray('[data-parallax]').forEach(el=>{
+    const amt=parseFloat(el.dataset.parallax)||40;
+    gsap.fromTo(el,{y:amt},{y:-amt,ease:'none',
+      scrollTrigger:{trigger:el,start:'top bottom',end:'bottom top',scrub:true}});
+  });
+
+  /* ---- Animated stat counters ---- */
+  document.querySelectorAll('[data-count]').forEach(el=>{
+    const end=+el.dataset.count;const o={v:0};
+    ScrollTrigger.create({trigger:el,start:'top 90%',once:true,onEnter:()=>{
+      gsap.to(o,{v:end,duration:1.6,ease:'power2.out',onUpdate:()=>el.textContent=Math.round(o.v)});}});
+  });
+
+  /* ---- Horizontal pin: journey ---- */
+  const track=document.getElementById('pinTrack');
+  if(track){
+    const dist=()=>track.scrollWidth-innerWidth+ (innerWidth*0.04);
+    gsap.to(track,{x:()=>-dist(),ease:'none',
+      scrollTrigger:{trigger:'#journey',start:'top top',end:()=>'+='+dist(),scrub:1,pin:true,
+        anticipatePin:1,invalidateOnRefresh:true}});
+  }
+
+  /* ---- 3D tilt cards ---- */
+  document.querySelectorAll('[data-tilt]').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const rx=((e.clientY-r.top)/r.height-.5)*-10;
+      const ry=((e.clientX-r.left)/r.width-.5)*12;
+      card.style.transform=`perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave',()=>card.style.transform='');
+  });
+
+  /* ---- Lightbox ---- */
+  if(typeof lightbox!=='undefined'){lightbox.option({resizeDuration:200,wrapAround:true,fadeDuration:300,fitImagesInViewport:true});}
+
+  ScrollTrigger.refresh();
+});
+</script>
+</body>
+</html>
